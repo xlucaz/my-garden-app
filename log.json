@@ -1,0 +1,28 @@
+[
+  {
+    "id": 1749850476121,
+    "plotName": "Herb Garden",
+    "timestamp": "2025-06-13T21:34:36.121Z"
+  },
+  {
+    "id": 1749851206075,
+    "plotName": "Vegetable Patch",
+    "timestamp": "2025-06-13T21:46:46.075Z",
+    "status": "Early",
+    "timeDifference": -170715740
+  },
+  {
+    "id": 1749859673521,
+    "plotName": "New Plot",
+    "timestamp": "2025-06-14T00:07:53.521Z",
+    "status": "Early",
+    "timeDifference": -32444959
+  },
+  {
+    "id": 1749859691575,
+    "plotName": "New Plot",
+    "timestamp": "2025-06-14T00:08:11.575Z",
+    "status": "Late",
+    "timeDifference": 3607950
+  }
+]
