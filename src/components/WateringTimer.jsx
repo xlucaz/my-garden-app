@@ -57,7 +57,7 @@ function WateringTimer({ nextWateringTime, wateringInterval }) {
         // --- THIS IS THE CHANGE ---
         // Instead of the countdown, we show a static goal time.
         <Typography variant="body2" color="text.secondary" gutterBottom>
-          Next watering at: {new Date(nextWateringTime).toLocaleString(undefined, timeFormatOptions)}
+          Water at: {new Date(nextWateringTime).toLocaleString(undefined, timeFormatOptions)}
         </Typography>
       )}
       <LinearProgress 

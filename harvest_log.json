@@ -1,0 +1,93 @@
+[
+  {
+    "id": 1749862144178,
+    "plotName": "Hehe",
+    "plantName": "21",
+    "timestamp": "2025-06-14T00:49:04.178Z"
+  },
+  {
+    "id": 1749862361873,
+    "plotName": "Hehe",
+    "plantName": "21",
+    "timestamp": "2025-06-14T00:52:41.873Z",
+    "quantity": "Test",
+    "action": "keep"
+  },
+  {
+    "id": 1749862552419,
+    "plotName": "Hehe",
+    "plantName": "21",
+    "timestamp": "2025-06-14T00:55:52.419Z",
+    "quantity": "10lbs",
+    "action": "remove"
+  },
+  {
+    "id": 1749862961292,
+    "plotName": "Vegetable Patch",
+    "plantName": "Bell Peppers",
+    "timestamp": "2025-06-14T01:02:41.292Z",
+    "quantity": "7",
+    "action": "keep",
+    "weather": {
+      "temp": 15.72,
+      "description": "broken clouds",
+      "icon": "https://openweathermap.org/img/wn/04d.png"
+    }
+  },
+  {
+    "id": 1749865525926,
+    "plotName": "Hehe",
+    "plantName": "3213",
+    "timestamp": "2025-06-14T01:45:25.926Z",
+    "quantity": "33",
+    "action": "keep",
+    "weather": {
+      "weatherData": {
+        "coord": {
+          "lon": -79.3849,
+          "lat": 43.6529
+        },
+        "weather": [
+          {
+            "id": 804,
+            "main": "Clouds",
+            "description": "overcast clouds",
+            "icon": "04n"
+          }
+        ],
+        "base": "stations",
+        "main": {
+          "temp": 15.34,
+          "feels_like": 14.68,
+          "temp_min": 15.05,
+          "temp_max": 16.55,
+          "pressure": 1021,
+          "humidity": 67,
+          "sea_level": 1021,
+          "grnd_level": 1008
+        },
+        "visibility": 10000,
+        "wind": {
+          "speed": 8.94,
+          "deg": 60,
+          "gust": 0
+        },
+        "clouds": {
+          "all": 100
+        },
+        "dt": 1749865244,
+        "sys": {
+          "type": 1,
+          "id": 718,
+          "country": "CA",
+          "sunrise": 1749807331,
+          "sunset": 1749862797
+        },
+        "timezone": -14400,
+        "id": 6167863,
+        "name": "Downtown Toronto",
+        "cod": 200
+      }
+    }
+  }
+]

@@ -7,7 +7,7 @@ import FastForwardIcon from '@mui/icons-material/FastForward';
 import HistoryIcon from '@mui/icons-material/History';
 import WateringTimer from './WateringTimer';
 
-function Plot({ plot, onRemove, onEdit, onWater, debugMode, onTimeShift }) {
+function Plot({ plot, onRemove, onEdit, onWater, debugMode, onTimeShift, onHarvest }) {
   const isWateringDue = plot.nextWateringTime - Date.now() < 0;
 
   return (
@@ -16,7 +16,17 @@ function Plot({ plot, onRemove, onEdit, onWater, debugMode, onTimeShift }) {
         <Typography variant="h5" component="div">{plot.name}</Typography>
         <WateringTimer nextWateringTime={plot.nextWateringTime} wateringInterval={plot.wateringInterval} />
         <Box sx={{ display: 'flex', gap: '8px', flexWrap: 'wrap', mt: 2 }}>
-          {plot.plants.map((plant, index) => plant ? <Chip key={index} label={plant} /> : null)}
+          {/* MODIFIED: The Chip is now clickable */}
+          {plot.plants.map((plant, index) =>
+            plant ? (
+              <Chip
+                key={index}
+                label={plant}
+                onClick={() => onHarvest(plot.id, plant)}
+                sx={{ cursor: 'pointer' }}
+              />
+            ) : null
+          )}
         </Box>
       </CardContent>
       <CardActions sx={{ justifyContent: 'space-between', p: 2 }}>

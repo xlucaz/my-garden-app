@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Paper, Typography, List, ListItem, ListItemText,
-  Divider, ListItemIcon, Chip
+  Divider, ListItemIcon, Chip, Tooltip, Box
 } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
@@ -9,7 +9,7 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 // Helper to format milliseconds into a readable string for the log
 const formatTimeDifference = (ms) => {
-  if (Math.abs(ms) < 60000) return 'less than a minute'; // Less than a minute
+  if (Math.abs(ms) < 60000) return 'less than a minute';
   const totalSeconds = Math.abs(Math.floor(ms / 1000));
   const days = Math.floor(totalSeconds / 86400);
   const hours = Math.floor((totalSeconds % 86400) / 3600);
@@ -25,7 +25,6 @@ const formatTimeDifference = (ms) => {
 
 const StatusChip = ({ status, timeDifference }) => {
   let icon, color, label;
-
   switch (status) {
     case 'Late':
       icon = <WarningAmberIcon />;
@@ -37,7 +36,7 @@ const StatusChip = ({ status, timeDifference }) => {
       color = 'info';
       label = `Early by ${formatTimeDifference(timeDifference)}`;
       break;
-    default: // On Time
+    default:
       icon = <CheckCircleOutlineIcon />;
       color = 'success';
       label = 'Watered on time';
@@ -55,18 +54,25 @@ function WateringLog({ log }) {
           log.slice().reverse().map((entry, index) => (
             <React.Fragment key={entry.id}>
               <ListItem>
-                <ListItemIcon>
-                  {
-                    {
-                      'Late': <WarningAmberIcon color="warning" />,
-                      'Early': <InfoOutlinedIcon color="info" />,
-                      'On Time': <CheckCircleOutlineIcon color="success" />
-                    }[entry.status]
-                  }
-                </ListItemIcon>
+                {/* ... (ListItemIcon and ListItemText) ... */}
                 <ListItemText
                   primary={`Watered "${entry.plotName}"`}
-                  secondary={new Date(entry.timestamp).toLocaleString()}
+                  secondary={
+                    <Box component="span" sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                      <Typography component="span" variant="body2" color="text.secondary">
+                        {new Date(entry.timestamp).toLocaleString()}
+                      </Typography>
+                      {/* UPDATED to read from the new weather object structure */}
+                      {entry.weather && entry.weather.main && entry.weather.weather && (
+                        <Tooltip title={entry.weather.weather[0].description}>
+                          <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', ml: 1.5, opacity: 0.7 }}>
+                            <img src={`https://openweathermap.org/img/wn/${entry.weather.weather[0].icon}.png`} alt={entry.weather.weather[0].description} style={{ width: 22, height: 22, marginRight: '4px' }} />
+                            <Typography component="span" variant="body2" color="text.secondary">{Math.round(entry.weather.main.temp)}°C</Typography>
+                          </Box>
+                        </Tooltip>
+                      )}
+                    </Box>
+                  }
                 />
                 <StatusChip status={entry.status} timeDifference={entry.timeDifference} />
               </ListItem>

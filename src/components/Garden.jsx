@@ -2,7 +2,7 @@ import React from 'react';
 import Plot from './Plot';
 import { Grid } from '@mui/material';
 
-function Garden({ plots, onRemove, onEdit, onWater, debugMode, onTimeShift }) {
+function Garden({ plots, onRemove, onEdit, onWater, debugMode, onTimeShift, onHarvest }) {
   return (
     <Grid container spacing={3}>
       {plots.map(plot => (
@@ -14,6 +14,7 @@ function Garden({ plots, onRemove, onEdit, onWater, debugMode, onTimeShift }) {
             onWater={onWater}
             debugMode={debugMode}
             onTimeShift={onTimeShift}
+            onHarvest={onHarvest} 
           />
         </Grid>
       ))}

@@ -22,24 +22,23 @@
     "name": "New Plot",
     "plants": [],
     "wateringInterval": 3600000,
-    "nextWateringTime": 1749863439529
+    "nextWateringTime": 1749867050829
   },
   {
     "id": 1749850599051,
     "name": "New Plot",
     "plants": [],
     "wateringInterval": 2700000,
-    "nextWateringTime": 1749862544415
+    "nextWateringTime": 1749864828250
   },
   {
     "id": 1749850895356,
     "name": "Hehe",
     "plants": [
       "321",
-      "3213",
-      "21"
+      "3213"
     ],
     "wateringInterval": 900000,
-    "nextWateringTime": 1749860748875
+    "nextWateringTime": 1749866371634
   }
 ]
