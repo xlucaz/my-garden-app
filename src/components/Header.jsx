@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Paper, FormControlLabel, Switch } from '@mui/material';
+import { Box, Typography, Paper, FormControlLabel, Switch, Button } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 
-function Header({ debugMode, onDebugToggle, weather }) {
+
+function Header({ debugMode, onDebugToggle, weather, activeTab, onAddPlot }) {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -16,6 +18,11 @@ function Header({ debugMode, onDebugToggle, weather }) {
         <Typography variant="h4">{currentTime.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</Typography>
       </Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        {activeTab === 0 && (
+          <Button variant="contained" startIcon={<AddIcon />} onClick={onAddPlot}>
+            Add Plot
+          </Button>
+        )}
         <FormControlLabel control={<Switch checked={debugMode} onChange={onDebugToggle} />} label="Debug Mode" />
         <Box sx={{ textAlign: 'right' }}>
           {weather && weather.main && weather.weather ? (

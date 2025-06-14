@@ -1,0 +1,61 @@
+[
+  {
+    "id": 1678886400000,
+    "plotId": 1,
+    "name": "Tomatoes",
+    "icon": "LocalFloristIcon",
+    "datePlanted": "2025-06-10T12:00:00.000Z",
+    "isRemoved": false,
+    "harvests": [
+      {
+        "date": "2025-08-15T10:00:00.000Z",
+        "quantity": "5 tomatoes"
+      }
+    ]
+  },
+  {
+    "id": 1678886400001,
+    "plotId": 1,
+    "name": "Cucumbers",
+    "icon": "YardIcon",
+    "datePlanted": "2025-06-10T12:00:00.000Z",
+    "isRemoved": false,
+    "harvests": []
+  },
+  {
+    "id": 1749875689539,
+    "plotId": 1749871976564,
+    "name": "Thai Basil",
+    "icon": "SpaIcon",
+    "datePlanted": "2025-06-14T04:34:49.539Z",
+    "isRemoved": false,
+    "harvests": []
+  },
+  {
+    "id": 1749875702241,
+    "plotId": 1749871976564,
+    "name": "Parsley",
+    "icon": "SpaIcon",
+    "datePlanted": "2025-06-14T04:35:02.241Z",
+    "isRemoved": false,
+    "harvests": []
+  },
+  {
+    "id": 1749875708390,
+    "plotId": 1749871976564,
+    "name": "Rosemary",
+    "icon": "SpaIcon",
+    "datePlanted": "2025-06-14T04:35:08.390Z",
+    "isRemoved": false,
+    "harvests": []
+  },
+  {
+    "id": 1749875772798,
+    "plotId": 1749871980979,
+    "name": "Hot peppers",
+    "icon": "SpaIcon",
+    "datePlanted": "2025-06-14T04:36:12.798Z",
+    "isRemoved": false,
+    "harvests": []
+  }
+]

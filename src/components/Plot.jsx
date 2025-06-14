@@ -1,48 +1,54 @@
 import React from 'react';
-import { Card, CardContent, CardActions, IconButton, Button, Box, Chip, Typography } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit';
-import WaterDropIcon from '@mui/icons-material/WaterDrop';
-import FastForwardIcon from '@mui/icons-material/FastForward';
-import HistoryIcon from '@mui/icons-material/History';
+import { Card, CardContent, Box, Typography, Tooltip } from '@mui/material';
 import WateringTimer from './WateringTimer';
 
-function Plot({ plot, onRemove, onEdit, onWater, debugMode, onTimeShift, onHarvest }) {
-  const isWateringDue = plot.nextWateringTime - Date.now() < 0;
+import LocalFloristIcon from '@mui/icons-material/LocalFlorist';
+import GrassIcon from '@mui/icons-material/Grass';
+import SpaIcon from '@mui/icons-material/Spa';
+import YardIcon from '@mui/icons-material/Yard';
 
+const getPlantIcon = (plantName) => {
+  const name = plantName.toLowerCase();
+  if (name.includes('tomato') || name.includes('pepper')) return <LocalFloristIcon fontSize="small" color="success" />;
+  if (name.includes('cucumber') || name.includes('squash')) return <YardIcon fontSize="small" color="success" />;
+  if (name.includes('herb') || name.includes('lettuce') || name.includes('basil')) return <GrassIcon fontSize="small" color="success" />;
+  return <SpaIcon fontSize="small" color="success" />;
+};
+
+
+function Plot({ plot, plantsForPlot, onCardClick }) {
   return (
-    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <CardContent sx={{ flexGrow: 1 }}>
-        <Typography variant="h5" component="div">{plot.name}</Typography>
+    <Card
+      onClick={() => onCardClick(plot)}
+      sx={{
+        cursor: 'pointer',
+        transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+        '&:hover': {
+          transform: 'translateY(-4px)',
+          boxShadow: 6,
+        },
+      }}
+    >
+      <CardContent sx={{ position: 'relative' }}>
+        <Box sx={{ position: 'absolute', top: 16, right: 16, display: 'flex', gap: 0.5 }}>
+          {plantsForPlot.length > 0 ? (
+            plantsForPlot.slice(0, 3).map(plant => (
+              <Tooltip key={plant.id} title={plant.name}>
+                <span>{getPlantIcon(plant.name)}</span>
+              </Tooltip>
+            ))
+          ) : (
+            <Tooltip title="No plants">
+              <span><SpaIcon fontSize="small" color="disabled" /></span>
+            </Tooltip>
+          )}
+        </Box>
+
+        <Typography variant="h5" component="div" sx={{ pr: '60px' }}>
+          {plot.name}
+        </Typography>
         <WateringTimer nextWateringTime={plot.nextWateringTime} wateringInterval={plot.wateringInterval} />
-        <Box sx={{ display: 'flex', gap: '8px', flexWrap: 'wrap', mt: 2 }}>
-          {/* MODIFIED: The Chip is now clickable */}
-          {plot.plants.map((plant, index) =>
-            plant ? (
-              <Chip
-                key={index}
-                label={plant}
-                onClick={() => onHarvest(plot.id, plant)}
-                sx={{ cursor: 'pointer' }}
-              />
-            ) : null
-          )}
-        </Box>
       </CardContent>
-      <CardActions sx={{ justifyContent: 'space-between', p: 2 }}>
-        <Button variant="contained" startIcon={<WaterDropIcon />} onClick={() => onWater(plot.id)} color={isWateringDue ? 'success' : 'primary'}>Water Now</Button>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          {/* This logic shows the buttons only when debugMode is true */}
-          {debugMode && (
-            <>
-              <IconButton title="Rewind 2 hours" onClick={() => onTimeShift(plot.id, 2)}><HistoryIcon /></IconButton>
-              <IconButton title="Fast-forward 2 hours" onClick={() => onTimeShift(plot.id, -2)}><FastForwardIcon /></IconButton>
-            </>
-          )}
-          <IconButton aria-label="edit" onClick={() => onEdit(plot)}><EditIcon /></IconButton>
-          <IconButton aria-label="delete" onClick={() => onRemove(plot.id)}><DeleteIcon /></IconButton>
-        </Box>
-      </CardActions>
     </Card>
   );
 }

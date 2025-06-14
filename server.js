@@ -1,89 +1,168 @@
 /* eslint-disable no-unused-vars */
 import express from 'express';
 import cors from 'cors';
-import fs from 'fs/promises';
 import path from 'path';
+import { Low } from 'lowdb';
+import { JSONFile } from 'lowdb/node';
+import { z } from 'zod';
 
+// --- SETUP ---
 const app = express();
 const PORT = 3001;
-const DB_FILE = path.resolve('./plots.json');
-const LOG_FILE = path.resolve('./log.json');
-const HARVEST_LOG_FILE = path.resolve('./harvest_log.json');
 
+// --- ZOD Schemas (No changes here) ---
+const PlotSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  wateringInterval: z.number(),
+  nextWateringTime: z.number(),
+});
+const PlotsSchema = z.array(PlotSchema);
+
+const PlantSchema = z.object({
+    id: z.number(),
+    plotId: z.number(),
+    name: z.string(),
+    icon: z.string(),
+    datePlanted: z.string().datetime(),
+    isRemoved: z.boolean(),
+    harvests: z.array(z.object({
+        date: z.string().datetime(),
+        quantity: z.string()
+    }))
+});
+const PlantsSchema = z.array(PlantSchema);
+
+
+const LogEntrySchema = z.object({
+  id: z.number(),
+  plotName: z.string(),
+  timestamp: z.string().datetime(),
+  status: z.string().optional(),
+  timeDifference: z.number().optional(),
+  weather: z.any().optional(),
+});
+const LogSchema = z.array(LogEntrySchema);
+
+const HarvestLogEntrySchema = z.object({
+    id: z.number(),
+    plotName: z.string(),
+    plantName: z.string(),
+    timestamp: z.string().datetime(),
+    quantity: z.string().optional(),
+    action: z.string().optional(),
+    weather: z.any().optional(),
+});
+const HarvestLogSchema = z.array(HarvestLogEntrySchema);
+
+// --- lowdb Setup (No changes from previous attempt, this part was correct) ---
+const createDb = (filename, defaultData = []) => {
+    const adapter = new JSONFile(path.resolve(filename));
+    return new Low(adapter, defaultData);
+};
+
+const plotsDb = createDb('./plots.json', []);
+const wateringLogDb = createDb('./log.json', []);
+const harvestLogDb = createDb('./harvest_log.json', []);
+const plantsDb = createDb('./plants.json', []);
+
+
+// --- Middlewares ---
 app.use(cors());
 app.use(express.json());
 
+const validate = (schema) => (req, res, next) => {
+  try {
+    schema.parse(req.body);
+    next();
+  } catch (error) {
+    res.status(400).json({ 
+        message: 'Invalid data format.',
+        errors: error.errors 
+    });
+  }
+};
+
+
+// --- API Routes (No changes here) ---
+
 app.get('/api/plots', async (req, res) => {
   try {
-    const data = await fs.readFile(DB_FILE, 'utf-8');
-    res.json(JSON.parse(data));
+    await plotsDb.read();
+    res.json(plotsDb.data);
   } catch (error) {
-    res.status(500).json({ message: 'Error reading data' });
+    res.status(500).json({ message: 'Error reading plots data' });
   }
 });
 
-app.post('/api/plots', async (req, res) => {
+app.post('/api/plots', validate(PlotsSchema), async (req, res) => {
   try {
-    const newPlots = req.body;
-    await fs.writeFile(DB_FILE, JSON.stringify(newPlots, null, 2));
+    plotsDb.data = req.body;
+    await plotsDb.write();
     res.status(200).json({ message: 'Data saved successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Error saving data' });
+    res.status(500).json({ message: 'Error saving plots data' });
   }
 });
 
 app.get('/api/log', async (req, res) => {
   try {
-    const data = await fs.readFile(LOG_FILE, 'utf-8');
-    if (!data) {
-      return res.json([]);
-    }
-    res.json(JSON.parse(data));
+    await wateringLogDb.read();
+    res.json(wateringLogDb.data);
   } catch (error) {
-    if (error.code === 'ENOENT') {
-      return res.json([]);
-    }
-    res.status(500).json({ message: 'Error reading log' });
+    res.status(500).json({ message: 'Error reading watering log' });
   }
 });
 
-app.post('/api/log', async (req, res) => {
+app.post('/api/log', validate(LogSchema), async (req, res) => {
   try {
-    const newLog = req.body;
-    await fs.writeFile(LOG_FILE, JSON.stringify(newLog, null, 2));
+    wateringLogDb.data = req.body;
+    await wateringLogDb.write();
     res.status(200).json({ message: 'Log saved successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Error saving log' });
+    res.status(500).json({ message: 'Error saving watering log' });
   }
 });
+
 
 app.get('/api/harvest_log', async (req, res) => {
-  try {
-    const data = await fs.readFile(HARVEST_LOG_FILE, 'utf-8');
-    if (!data) {
-      return res.json([]);
+    try {
+        await harvestLogDb.read();
+        res.json(harvestLogDb.data);
+    } catch (error) {
+        res.status(500).json({ message: 'Error reading harvest log' });
     }
-    res.json(JSON.parse(data));
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      return res.json([]);
-    }
-    res.status(500).json({ message: 'Error reading harvest log' });
-  }
 });
 
-app.post('/api/harvest_log', async (req, res) => {
-  try {
-    const newLog = req.body;
-    if (!Array.isArray(newLog)) {
-      return res.status(400).json({ message: 'Invalid data format. Expected an array.' });
+app.post('/api/harvest_log', validate(HarvestLogSchema), async (req, res) => {
+    try {
+        harvestLogDb.data = req.body;
+        await harvestLogDb.write();
+        res.status(200).json({ message: 'Harvest log saved successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error saving harvest log' });
     }
-    await fs.writeFile(HARVEST_LOG_FILE, JSON.stringify(newLog, null, 2));
-    res.status(200).json({ message: 'Harvest log saved successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error saving harvest log' });
-  }
 });
+
+app.get('/api/plants', async (req, res) => {
+    try {
+        await plantsDb.read();
+        res.json(plantsDb.data);
+    } catch (error) {
+        res.status(500).json({ message: 'Error reading plants data' });
+    }
+});
+
+app.post('/api/plants', validate(PlantsSchema), async (req, res) => {
+    try {
+        plantsDb.data = req.body;
+        await plantsDb.write();
+        res.status(200).json({ message: 'Plants data saved successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error saving plants data' });
+    }
+});
+
 
 app.listen(PORT, () => {
   console.log(`Backend server is running at http://localhost:${PORT}`);

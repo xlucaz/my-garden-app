@@ -28,19 +28,11 @@ function EditPlotDialog({ open, onClose, onSave, plot }) {
     onSave({ ...plot, name, plants: plants.filter(p => p), wateringInterval: totalMs });
   };
 
-  const handlePlantChange = (index, value) => {
-    const newPlants = [...plants];
-    newPlants[index] = value;
-    setPlants(newPlants);
-  };
-
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
       <DialogTitle>Edit Plot</DialogTitle>
       <DialogContent>
         <TextField autoFocus margin="dense" label="Plot Name" type="text" fullWidth value={name} onChange={(e) => setName(e.target.value)} sx={{ mb: 2 }} />
-        <Typography variant="subtitle1" sx={{ mt: 2 }}>Plants (up to 3)</Typography>
-        {plants.map((plant, index) => (<TextField key={index} margin="dense" label={`Plant ${index + 1}`} type="text" fullWidth value={plant} onChange={(e) => handlePlantChange(index, e.target.value)} />))}
         <Typography variant="subtitle1" sx={{ mt: 2 }}>Watering Interval</Typography>
         <Box display="flex" gap={2}>
           <TextField label="Days" type="number" value={interval.days} onChange={(e) => setInterval({...interval, days: Number(e.target.value)})} />

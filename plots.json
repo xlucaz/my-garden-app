@@ -1,44 +1,21 @@
 [
   {
-    "id": 1,
-    "name": "Vegetable Patch",
-    "plants": [
-      "Tomatoes",
-      "Cucumbers",
-      "Bell Peppers"
-    ],
-    "wateringInterval": 10800000,
-    "nextWateringTime": 1749870632835
+    "id": 1749871976564,
+    "name": "Herbs",
+    "wateringInterval": 86400000,
+    "nextWateringTime": 1749958377628,
+    "plants": []
   },
   {
-    "id": 1749848918480,
-    "name": "New Plot",
-    "plants": [],
-    "wateringInterval": 7200000,
-    "nextWateringTime": 1749867030532
+    "id": 1749871980979,
+    "name": "Plot 2",
+    "wateringInterval": 86400000,
+    "nextWateringTime": 1749958381863
   },
   {
-    "id": 1749848922662,
-    "name": "New Plot",
-    "plants": [],
-    "wateringInterval": 3600000,
-    "nextWateringTime": 1749867050829
-  },
-  {
-    "id": 1749850599051,
-    "name": "New Plot",
-    "plants": [],
-    "wateringInterval": 2700000,
-    "nextWateringTime": 1749864828250
-  },
-  {
-    "id": 1749850895356,
-    "name": "Hehe",
-    "plants": [
-      "321",
-      "3213"
-    ],
-    "wateringInterval": 900000,
-    "nextWateringTime": 1749866371634
+    "id": 1749871997786,
+    "name": "Plot 4",
+    "wateringInterval": 86400000,
+    "nextWateringTime": 1749958398500
   }
 ]

@@ -6,8 +6,9 @@ import AirIcon from '@mui/icons-material/Air';
 import ThermostatIcon from '@mui/icons-material/Thermostat';
 import WbCloudyOutlinedIcon from '@mui/icons-material/WbCloudyOutlined';
 import UmbrellaOutlinedIcon from '@mui/icons-material/UmbrellaOutlined';
+import FlipCameraAndroidIcon from '@mui/icons-material/FlipCameraAndroid';
 
-// Helper functions (no changes needed)
+
 const groupForecastsByDay = (list) => {
   if (!list) return {};
   return list.reduce((acc, forecast) => {
@@ -48,8 +49,12 @@ const ForecastCard = ({ item }) => {
   const cardStyle = {
     flex: '0 0 120px',
     height: '170px',
-    perspective: '1000px', // The 3D space for the flip
+    perspective: '1000px',
     cursor: 'pointer',
+    position: 'relative', 
+    '&:hover .flip-icon': { 
+        opacity: 1,
+    }
   };
 
   const cardInnerStyle = {
@@ -73,11 +78,24 @@ const ForecastCard = ({ item }) => {
     p: 1,
     borderRadius: 2,
   };
+  
+  const flipIconStyle = {
+    position: 'absolute',
+    top: '4px',
+    right: '4px',
+    zIndex: 5,
+    opacity: 0,
+    transition: 'opacity 0.3s',
+    color: 'action.active',
+  }
 
   return (
     <Box sx={cardStyle} onClick={() => setIsFlipped(!isFlipped)}>
+
+      <FlipCameraAndroidIcon className="flip-icon" sx={flipIconStyle} />
+
       <Box sx={cardInnerStyle}>
-        {/* Front of the Card */}
+  
         <Paper elevation={2} sx={{ ...faceStyle, backgroundColor: 'background.paper' }}>
           <Typography variant="subtitle2">
             {new Date(item.dt * 1000).toLocaleTimeString(undefined, { hour: 'numeric' })}
@@ -90,8 +108,8 @@ const ForecastCard = ({ item }) => {
           </Typography>
         </Paper>
 
-        {/* Back of the Card */}
-        <Paper elevation={4} sx={{ ...faceStyle, transform: 'rotateY(180deg)', backgroundColor: 'grey.200', fontSize: '0.75rem' }}>
+
+        <Paper elevation={4} sx={{ ...faceStyle, transform: 'rotateY(180deg)', backgroundColor: theme => theme.palette.background.paper, fontSize: '0.75rem' }}>
           <Typography variant="body2" sx={{textTransform: 'capitalize', mb: 1, fontWeight: 'bold'}}>{item.weather[0].description}</Typography>
           <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center' }}><ThermostatIcon fontSize="small" sx={{ mr: 0.5 }}/>Feels like {Math.round(item.main.feels_like)}°</Typography>
           <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center' }}><WaterDropOutlinedIcon fontSize="small" sx={{ mr: 0.5 }}/>{item.main.humidity}% Humidity</Typography>
@@ -131,7 +149,6 @@ function WeatherTab({ forecast }) {
         return (
           <Accordion key={day} expanded={isExpanded} onChange={handleAccordionChange(day)} sx={{ '&:before': { display: 'none' } }} elevation={0}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls={`${day}-content`} id={`${day}-header`}>
-              {/* Daily Summary Row (no changes) */}
               <Grid container alignItems="center" spacing={1}>
                 <Grid item xs={12} sm={4}><Typography sx={{ fontWeight: 'bold' }}>{day}</Typography></Grid>
                 <Grid item xs={6} sm={4} sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'flex-start', sm: 'center' } }}>
@@ -145,7 +162,6 @@ function WeatherTab({ forecast }) {
               </Grid>
             </AccordionSummary>
             <AccordionDetails sx={{ backgroundColor: 'action.hover', p: 2 }}>
-              {/* NEW: Horizontally scrolling container for the flippable cards */}
               <Box sx={{ display: 'flex', overflowX: 'auto', gap: 2, pb: 1, '::-webkit-scrollbar': { height: '8px' }, '::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '4px' } }}>
                 {dayForecasts.map((item) => (
                   <ForecastCard key={item.dt} item={item} />
