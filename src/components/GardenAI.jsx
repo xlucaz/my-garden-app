@@ -8,8 +8,9 @@ import GardenPal from './GardenPal';
  * @param {object} props
  * @param {Array} props.plants - The array of all plant objects.
  * @param {Array} props.plots - The array of all plot objects.
+ * @param {object} props.aiTips - The object containing fetched AI tips.
  */
-function GardenAI({ plants, plots }) {
+function GardenAI({ plants, plots, aiTips }) {
   return (
     <Box>
       <GardenDashboard plants={plants} plots={plots} />
@@ -21,7 +22,7 @@ function GardenAI({ plants, plots }) {
         Personalized tips and notices for your garden, powered by AI.
       </Typography>
 
-      <GardenPal plants={plants} plots={plots} />
+      <GardenPal plants={plants} plots={plots} aiTips={aiTips} />
     </Box>
   );
 }

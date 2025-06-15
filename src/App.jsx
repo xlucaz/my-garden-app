@@ -16,9 +16,9 @@ import PlantDetailsDialog from './components/PlantDetailsDialog';
 import EditPlantDialog from './components/EditPlantDialog';
 
 
-const PLOTS_API_URL = 'http://localhost:3001/api/plots';
-const PLANTS_API_URL = 'http://localhost:3001/api/plants';
-const AI_API_URL = 'http://localhost:3001/api/ai/ask';
+const PLOTS_API_URL = '/api/plots';
+const PLANTS_API_URL = '/api/plants';
+const AI_API_URL = '/api/ai/ask';
 
 const LATITUDE = 43.6532;
 const LONGITUDE = -79.3832;
@@ -59,6 +59,11 @@ function App() {
   const [editPlantDialogOpen, setEditPlantDialogOpen] = useState(false);
   const [plantToEdit, setPlantToEdit] = useState(null);
 
+  // State for AI tip queue
+  const [aiTips, setAiTips] = useState({});
+  const [tipRequestQueue, setTipRequestQueue] = useState([]);
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
+
 
 useEffect(() => {
     const fetchAllData = async () => {
@@ -75,10 +80,21 @@ useEffect(() => {
             throw new Error('Failed to fetch data. Please check your API key and network connection.');
         }
 
-        setPlots(await plotsRes.json());
-        setPlants(await plantsRes.json());
+        const plotsData = await plotsRes.json();
+        const plantsData = await plantsRes.json();
+
+        setPlots(plotsData);
+        setPlants(plantsData);
         setWeather(await weatherRes.json());
         setForecast(await forecastRes.json());
+
+        // Populate the AI tip request queue once plants are loaded
+        const activePlants = plantsData.filter(p => !p.isRemoved);
+        const requests = activePlants.map(plant => ({
+            plantId: plant.id,
+            question: `What is one important tip for a ${plant.name} plant that is currently in the ${plant.status} stage? Keep the answer to one sentence.`
+        }));
+        setTipRequestQueue(requests);
 
       } catch (err) {
         console.error('Failed to fetch initial data:', err);
@@ -89,8 +105,42 @@ useEffect(() => {
     };
     fetchAllData();
   }, []);
+
+  // Effect to process the AI tip queue serially
+  useEffect(() => {
+    if (tipRequestQueue.length > 0 && !isAiProcessing) {
+        setIsAiProcessing(true);
+        const nextRequest = tipRequestQueue[0];
+
+        const fetchTip = async () => {
+            try {
+                const response = await fetch(AI_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: nextRequest.question })
+                });
+
+                if (!response.ok) {
+                    throw new Error('AI service failed to respond.');
+                }
+                
+                const data = await response.json();
+                setAiTips(prev => ({ ...prev, [nextRequest.plantId]: data.answer }));
+            } catch (error) {
+                console.error(`Failed to fetch tip for plant ID ${nextRequest.plantId}:`, error);
+                setAiTips(prev => ({ ...prev, [nextRequest.plantId]: 'Could not fetch a tip at this time.' }));
+            } finally {
+                setTipRequestQueue(prev => prev.slice(1)); // Remove processed request
+                setIsAiProcessing(false); // Free up the processor for the next request
+            }
+        };
+
+        fetchTip();
+    }
+  }, [tipRequestQueue, isAiProcessing]);
   
   const handleSave = async (url, newData, previousData, successMessage) => {
+// ... (rest of function is unchanged)
     try {
       const response = await fetch(url, {
         method: 'POST',
@@ -111,6 +161,7 @@ useEffect(() => {
 
 
 const handleWaterPlot = (plotId) => {
+// ... (rest of function is unchanged)
     const plotToWater = plots.find(p => p.id === plotId);
     if (!plotToWater) return;
 
@@ -151,6 +202,7 @@ const handleWaterPlot = (plotId) => {
   };
 
   const handleHarvest = (plant) => {
+// ... (rest of function is unchanged)
     setHarvestInfo({
       plantObject: plant 
     });
@@ -158,6 +210,7 @@ const handleWaterPlot = (plotId) => {
   };
   
   const handleSaveHarvest = ({ quantity, action }) => {
+// ... (rest of function is unchanged)
     if (!harvestInfo || !harvestInfo.plantObject) return;
 
     const { plantObject } = harvestInfo;
@@ -196,6 +249,7 @@ const handleWaterPlot = (plotId) => {
   };
   
 const handleConfirmDelete = () => {
+// ... (rest of function is unchanged)
     if (!plotToDelete) return; 
     const previousPlots = [...plots];
     const updatedPlots = plots.filter(p => p.id !== plotToDelete);
@@ -210,6 +264,7 @@ const handleConfirmDelete = () => {
   };
   
   const handleEditSave = (plotDataFromDialog) => {
+// ... (rest of function is unchanged)
     const previousPlots = [...plots];
     const isExistingPlot = plots.some(p => p.id === plotDataFromDialog.id);
     let plotToSave = { ...plotDataFromDialog };
@@ -226,6 +281,7 @@ const handleConfirmDelete = () => {
   };
 
   const handleRemoveClick = (plotId) => { setPlotToDelete(plotId); setDeleteDialogOpen(true); };
+// ... (rest of handlers are unchanged)
   const handleAddPlot = () => {
     const interval = 86400000;
     const newPlotTemplate = { id: Date.now(), name: '', wateringInterval: interval, nextWateringTime: Date.now() + interval, soilType: 'Loam', plantIds: [] };
@@ -245,18 +301,6 @@ const handleConfirmDelete = () => {
     setDetailsDialogOpen(false);
   };
 
-  useEffect(() => {
-    if (activeTab === 0) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto';
-    }
-
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
-  }, [activeTab]);
-
   const handleOpenAddPlantDialog = (plot) => {
     setPlotToAddPlantTo(plot);
     setAddPlantDialogOpen(true);
@@ -269,8 +313,8 @@ const handleConfirmDelete = () => {
   const handleSaveNewPlant = async ({ name, status }) => {
     if (!plotToAddPlantTo) return;
 
-    let estimatedDaysToMaturity = null;
-    let estimatedHarvestDate = null;
+    let estimatedDaysToMaturity = undefined;
+    let estimatedHarvestDate = undefined;
     
     try {
         const question = `On average, how many days does it take for a ${name} plant to reach maturity from a seed? Please respond with only a single number.`;
@@ -409,7 +453,7 @@ const handleConfirmDelete = () => {
 
               <TabPanel value={activeTab} index={4}>
                 <Box sx={{ px: { xs: 2, sm: 3 } }}>
-                  <GardenAI plants={plants} plots={plots} />
+                  <GardenAI plants={plants} plots={plots} aiTips={aiTips} />
                 </Box>
             </TabPanel>
           </>
