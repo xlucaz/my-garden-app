@@ -5,6 +5,7 @@ import path from 'path';
 import { Low } from 'lowdb';
 import { JSONFile } from 'lowdb/node';
 import { z } from 'zod';
+import { fileURLToPath } from 'url'
 
 // --- SETUP ---
 const app = express();
