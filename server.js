@@ -10,14 +10,23 @@ import { z } from 'zod';
 const app = express();
 const PORT = 3001;
 
-// --- ZOD Schemas (No changes here) ---
+// --- ZOD Schemas ---
+const WeatherSummarySchema = z.object({
+    temp: z.number(),
+    description: z.string(),
+    icon: z.string(),
+    humidity: z.number(),
+});
+
 const PlotSchema = z.object({
   id: z.number(),
   name: z.string(),
   wateringInterval: z.number(),
   nextWateringTime: z.number(),
+  plantIds: z.array(z.number()).optional(),
 });
 const PlotsSchema = z.array(PlotSchema);
+
 
 const PlantSchema = z.object({
     id: z.number(),
@@ -25,49 +34,34 @@ const PlantSchema = z.object({
     name: z.string(),
     icon: z.string(),
     datePlanted: z.string().datetime(),
+    status: z.string().optional(),
     isRemoved: z.boolean(),
+    wateringHistory: z.array(z.object({
+        timestamp: z.string().datetime(),
+        weather: WeatherSummarySchema.optional(), 
+    })).optional(),
     harvests: z.array(z.object({
-        date: z.string().datetime(),
-        quantity: z.string()
-    }))
+        date: z.string().datetime().optional(),
+        timestamp: z.string().datetime().optional(),
+        quantity: z.string().optional(),
+        action: z.string().optional(),
+        weather: WeatherSummarySchema.optional(), 
+    })),
+    // ADDED: AI-driven fields
+    estimatedDaysToMaturity: z.number().optional(),
+    estimatedHarvestDate: z.string().datetime().optional(),
 });
 const PlantsSchema = z.array(PlantSchema);
 
 
-const LogEntrySchema = z.object({
-  id: z.number(),
-  plotName: z.string(),
-  timestamp: z.string().datetime(),
-  status: z.string().optional(),
-  timeDifference: z.number().optional(),
-  weather: z.any().optional(),
-});
-const LogSchema = z.array(LogEntrySchema);
-
-const HarvestLogEntrySchema = z.object({
-    id: z.number(),
-    plotName: z.string(),
-    plantName: z.string(),
-    timestamp: z.string().datetime(),
-    quantity: z.string().optional(),
-    action: z.string().optional(),
-    weather: z.any().optional(),
-});
-const HarvestLogSchema = z.array(HarvestLogEntrySchema);
-
-// --- lowdb Setup (No changes from previous attempt, this part was correct) ---
 const createDb = (filename, defaultData = []) => {
     const adapter = new JSONFile(path.resolve(filename));
     return new Low(adapter, defaultData);
 };
 
 const plotsDb = createDb('./plots.json', []);
-const wateringLogDb = createDb('./log.json', []);
-const harvestLogDb = createDb('./harvest_log.json', []);
 const plantsDb = createDb('./plants.json', []);
 
-
-// --- Middlewares ---
 app.use(cors());
 app.use(express.json());
 
@@ -76,15 +70,13 @@ const validate = (schema) => (req, res, next) => {
     schema.parse(req.body);
     next();
   } catch (error) {
-    res.status(400).json({ 
+    res.status(400).json({
         message: 'Invalid data format.',
-        errors: error.errors 
+        errors: error.errors
     });
   }
 };
 
-
-// --- API Routes (No changes here) ---
 
 app.get('/api/plots', async (req, res) => {
   try {
@@ -105,44 +97,6 @@ app.post('/api/plots', validate(PlotsSchema), async (req, res) => {
   }
 });
 
-app.get('/api/log', async (req, res) => {
-  try {
-    await wateringLogDb.read();
-    res.json(wateringLogDb.data);
-  } catch (error) {
-    res.status(500).json({ message: 'Error reading watering log' });
-  }
-});
-
-app.post('/api/log', validate(LogSchema), async (req, res) => {
-  try {
-    wateringLogDb.data = req.body;
-    await wateringLogDb.write();
-    res.status(200).json({ message: 'Log saved successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error saving watering log' });
-  }
-});
-
-
-app.get('/api/harvest_log', async (req, res) => {
-    try {
-        await harvestLogDb.read();
-        res.json(harvestLogDb.data);
-    } catch (error) {
-        res.status(500).json({ message: 'Error reading harvest log' });
-    }
-});
-
-app.post('/api/harvest_log', validate(HarvestLogSchema), async (req, res) => {
-    try {
-        harvestLogDb.data = req.body;
-        await harvestLogDb.write();
-        res.status(200).json({ message: 'Harvest log saved successfully' });
-    } catch (error) {
-        res.status(500).json({ message: 'Error saving harvest log' });
-    }
-});
 
 app.get('/api/plants', async (req, res) => {
     try {
@@ -162,6 +116,33 @@ app.post('/api/plants', validate(PlantsSchema), async (req, res) => {
         res.status(500).json({ message: 'Error saving plants data' });
     }
 });
+
+app.post('/api/ai/plant-info', async (req, res) => {
+  const { plantName } = req.body;
+
+  if (!plantName) {
+    return res.status(400).json({ message: 'plantName is required' });
+  }
+
+  console.log(`AI endpoint received request for: ${plantName}`);
+  let days = null;
+  const lowerCaseName = plantName.toLowerCase();
+
+  if (lowerCaseName.includes('basil')) {
+    days = 70;
+  } else if (lowerCaseName.includes('tomato')) {
+    days = 60;
+  } else if (lowerCaseName.includes('pepper')) {
+    days = 75;
+  }
+
+  if (days) {
+    res.json({ estimatedDaysToMaturity: days });
+  } else {
+    res.status(404).json({ message: 'Could not find information for this plant.' });
+  }
+});
+
 
 
 app.listen(PORT, () => {

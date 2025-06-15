@@ -1,21 +1,13 @@
 [
   {
-    "id": 1749871976564,
-    "name": "Herbs",
-    "wateringInterval": 86400000,
-    "nextWateringTime": 1749958377628,
-    "plants": []
-  },
-  {
-    "id": 1749871980979,
-    "name": "Plot 2",
-    "wateringInterval": 86400000,
-    "nextWateringTime": 1749958381863
-  },
-  {
-    "id": 1749871997786,
-    "name": "Plot 4",
-    "wateringInterval": 86400000,
-    "nextWateringTime": 1749958398500
+    "id": 1749943370599,
+    "name": "Flowers",
+    "plants": [],
+    "wateringInterval": 122400000,
+    "nextWateringTime": 1750065782785,
+    "soilType":"...",
+    "plantIds": [
+      1749943391204
+    ]
   }
 ]

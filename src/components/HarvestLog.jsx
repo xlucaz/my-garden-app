@@ -6,20 +6,40 @@ import {
 import GrassIcon from '@mui/icons-material/Grass';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 
-function HarvestLog({ log }) {
+/**
+ * Displays a log of all harvest events from all plants.
+ * @param {object} props
+ * @param {Array} props.plants - The array of all plant objects.
+ * @param {Array} props.plots - The array of all plot objects.
+ */
+function HarvestLog({ plants, plots }) {
+  // 1. Create a flat, combined log by iterating through each plant's harvest history.
+  const combinedLog = plants.flatMap(plant => {
+    const plot = plots.find(p => p.id === plant.plotId);
+    // 2. For each harvest, create a new object with all necessary info for display.
+    return plant.harvests.map(entry => ({
+      ...entry,
+      id: `${plant.id}-${entry.timestamp}`, // Create a unique key for React
+      plantName: plant.name,
+      plotName: plot ? plot.name : 'Unknown Plot',
+    }));
+  });
+
+  // 3. Sort the combined log by date, showing the most recent harvests first.
+  const sortedLog = combinedLog.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
   return (
     <Paper elevation={3} sx={{ p: 2, mt: 4 }}>
       <Typography variant="h5" gutterBottom>Harvest Log</Typography>
       <List>
-        {log.length > 0 ? (
-          log.slice().reverse().map((entry, index) => {
+        {sortedLog.length > 0 ? (
+          sortedLog.map((entry, index) => {
             const actionText = entry.action === 'remove' ? 'Plant Removed' : 'Plant Kept';
             let details = entry.quantity ? `Quantity: ${entry.quantity} (${actionText})` : actionText;
             const formattedTimestamp = new Date(entry.timestamp).toLocaleString();
             
             const secondaryContent = (
               <Box component="span" sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                 {/* FIX: The Typography is now a span */}
                  <Typography component="span" variant="body2" color="text.secondary">
                    {`${details} · ${formattedTimestamp}`}
                  </Typography>
@@ -48,13 +68,14 @@ function HarvestLog({ log }) {
                     secondary={secondaryContent}
                   />
                 </ListItem>
-                {index < log.length - 1 && <Divider />}
+                {index < sortedLog.length - 1 && <Divider />}
               </React.Fragment>
             );
           })
         ) : (
           <ListItem>
-            <ListItemText primary="No watering events logged yet." />
+            {/* Updated message to be consistent */}
+            <ListItemText primary="No harvest events logged yet." />
           </ListItem>
         )}
       </List>

@@ -11,11 +11,12 @@ import { Container, CssBaseline, Box, Tabs, Tab, Button, Typography, CircularPro
 import AddIcon from '@mui/icons-material/Add';
 import PlotDetailsDialog from './components/PlotDetailsDialog';
 import AddPlantDialog from './components/AddPlantDialog';
+import GardenAI from './components/GardenAI';
+
 
 const PLOTS_API_URL = 'http://localhost:3001/api/plots';
-const WATERING_LOG_API_URL = 'http://localhost:3001/api/log';
-const HARVEST_LOG_API_URL = 'http://localhost:3001/api/harvest_log';
 const PLANTS_API_URL = 'http://localhost:3001/api/plants';
+const AI_PLANT_INFO_URL = 'http://localhost:3001/api/ai/plant-info';
 
 const LATITUDE = 43.6532;
 const LONGITUDE = -79.3832;
@@ -35,10 +36,7 @@ function TabPanel(props) {
 function App() {
   const [plots, setPlots] = useState([]);
   const [plants, setPlants] = useState([]);
-  const [wateringLog, setWateringLog] = useState([]);
-  const [harvestLog, setHarvestLog] = useState([]);
   const [activeTab, setActiveTab] = useState(0);
-  const [debugMode, setDebugMode] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [plotToDelete, setPlotToDelete] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -61,26 +59,19 @@ useEffect(() => {
       setIsLoading(true);
       setError(null);
       try {
-        const [plotsRes, plantsRes, wateringLogRes, harvestLogRes] = await Promise.all([
+         const [plotsRes, plantsRes, weatherRes, forecastRes] = await Promise.all([
           fetch(PLOTS_API_URL),
           fetch(PLANTS_API_URL),
-          fetch(WATERING_LOG_API_URL),
-          fetch(HARVEST_LOG_API_URL)
+          fetch(WEATHER_API_URL),
+          fetch(FORECAST_API_URL)
         ]);
-        setPlots(await plotsRes.json());
-        setPlants(await plantsRes.json()); 
-        setWateringLog(await wateringLogRes.json());
-        setHarvestLog(await harvestLogRes.json());
-
-        const [weatherRes, forecastRes] = await Promise.all([
-            fetch(WEATHER_API_URL), fetch(FORECAST_API_URL)
-        ]);
-
-        if (!weatherRes.ok || !forecastRes.ok) {
-            throw new Error('Failed to fetch weather data. Please check your API key and network connection.');
+        if (!plotsRes.ok || !plantsRes.ok || !weatherRes.ok || !forecastRes.ok) {
+            throw new Error('Failed to fetch data. Please check your API key and network connection.');
         }
-        const weatherData = await weatherRes.json();
-        setWeather(weatherData);
+
+        setPlots(await plotsRes.json());
+        setPlants(await plantsRes.json());
+        setWeather(await weatherRes.json());
         setForecast(await forecastRes.json());
 
       } catch (err) {
@@ -110,44 +101,51 @@ useEffect(() => {
       setSnackbar({ open: true, message: `Error: ${error.message}`, severity: 'error' });
       if (url === PLOTS_API_URL) setPlots(previousData);
       if (url === PLANTS_API_URL) setPlants(previousData);
-      if (url === WATERING_LOG_API_URL) setWateringLog(previousData);
-      if (url === HARVEST_LOG_API_URL) setHarvestLog(previousData);
     }
   };
 
 
-  const handleWaterPlot = (plotId) => {
+const handleWaterPlot = (plotId) => {
     const plotToWater = plots.find(p => p.id === plotId);
     if (!plotToWater) return;
 
+    // --- Part 1: Update the Plot's Schedule ---
     const previousPlots = [...plots];
-    const previousWateringLog = [...wateringLog];
-
-    const timeDifference = Date.now() - plotToWater.nextWateringTime;
-    let status = 'On Time';
-    const oneHour = 3600000;
-    if (timeDifference > oneHour) { status = 'Late'; }
-    else if (timeDifference < -oneHour) { status = 'Early'; }
-
-    const newLogEntry = { 
-      id: Date.now(), 
-      plotName: plotToWater.name, 
-      timestamp: new Date().toISOString(), 
-      status: status, 
-      timeDifference: timeDifference,
-      weather: weather 
-    };
-
-    const updatedLog = [...wateringLog, newLogEntry];
-    setWateringLog(updatedLog);
-
     const updatedPlot = { ...plotToWater, nextWateringTime: Date.now() + plotToWater.wateringInterval };
     const updatedPlots = plots.map(p => p.id === plotId ? updatedPlot : p);
     setPlots(updatedPlots);
+    handleSave(PLOTS_API_URL, updatedPlots, previousPlots, `Plot ${plotToWater.name} schedule updated!`);
 
-    // Save both logs and plots
-    handleSave(WATERING_LOG_API_URL, updatedLog, previousWateringLog, "Watering event logged!");
-    handleSave(PLOTS_API_URL, updatedPlots, previousPlots, "Plot updated!");
+
+    // --- Part 2: Update the Watering History for each Plant in the Plot ---
+    const previousPlants = [...plants];
+    const plantsToUpdate = plants.filter(p => p.plotId === plotId && !p.isRemoved);
+    if (plantsToUpdate.length === 0) return; // No plants to log for
+
+    const weatherSummary = weather ? {
+        temp: weather.main.temp,
+        description: weather.weather[0].description,
+        icon: weather.weather[0].icon,
+        humidity: weather.main.humidity
+    } : null;
+
+    const newWateringEntry = {
+      timestamp: new Date().toISOString(),
+      weather: weatherSummary,
+    };
+
+    const updatedPlants = plants.map(plant => {
+      if (plantsToUpdate.some(p => p.id === plant.id)) {
+        return {
+          ...plant,
+          wateringHistory: [...(plant.wateringHistory || []), newWateringEntry],
+        };
+      }
+      return plant;
+    });
+
+    setPlants(updatedPlants);
+    handleSave(PLANTS_API_URL, updatedPlants, previousPlants, `Watering logged for plants in ${plotToWater.name}!`);
   };
 
   const handleHarvest = (plant) => {
@@ -157,18 +155,24 @@ useEffect(() => {
     setHarvestDialogOpen(true);
   };
   
-const handleSaveHarvest = ({ quantity, action }) => {
+  const handleSaveHarvest = ({ quantity, action }) => {
     if (!harvestInfo || !harvestInfo.plantObject) return;
 
     const { plantObject } = harvestInfo;
+    const plot = plots.find(p => p.id === plantObject.plotId);
+    if (!plot) return;
+
     const previousPlants = [...plants];
+
+    const newHarvest = {
+      timestamp: new Date().toISOString(),
+      quantity: quantity,
+      action: action,
+      weather: weather,
+    };
 
     const updatedPlants = plants.map(p => {
       if (p.id === plantObject.id) {
-        const newHarvest = {
-          date: new Date().toISOString(),
-          quantity: quantity,
-        };
         return {
           ...p,
           harvests: [...p.harvests, newHarvest],
@@ -182,11 +186,16 @@ const handleSaveHarvest = ({ quantity, action }) => {
     handleSave(PLANTS_API_URL, updatedPlants, previousPlants, "Harvest logged successfully!");
   };
   
-  const handleConfirmDelete = () => {
+const handleConfirmDelete = () => {
+    if (!plotToDelete) return; // Safety check
     const previousPlots = [...plots];
     const updatedPlots = plots.filter(p => p.id !== plotToDelete);
     setPlots(updatedPlots);
     handleSave(PLOTS_API_URL, updatedPlots, previousPlots, "Plot deleted successfully.");
+    const previousPlants = [...plants];
+    const updatedPlants = plants.filter(p => p.plotId !== plotToDelete);
+    setPlants(updatedPlants);
+    handleSave(PLANTS_API_URL, updatedPlants, previousPlants, "Associated plants removed.");
     setDeleteDialogOpen(false);
     setPlotToDelete(null);
   };
@@ -205,18 +214,6 @@ const handleSaveHarvest = ({ quantity, action }) => {
     handleSave(PLOTS_API_URL, updatedPlots, previousPlots, isExistingPlot ? "Plot updated!" : "Plot added!");
     setEditDialogOpen(false);
     setPlotToEdit(null);
-  };
-
-  // --- Other handlers (no changes needed) ---
-  const handleTimeShift = (plotId, hours) => {
-    const previousPlots = [...plots];
-    const plotToShift = plots.find(p => p.id === plotId);
-    if (!plotToShift) return;
-    const timeShiftInMs = hours * 3600000;
-    const updatedPlot = { ...plotToShift, nextWateringTime: plotToShift.nextWateringTime + timeShiftInMs };
-    const updatedPlots = plots.map(p => p.id === plotId ? updatedPlot : p);
-    setPlots(updatedPlots);
-    handleSave(PLOTS_API_URL, updatedPlots, previousPlots, "Time shifted for plot.");
   };
 
   const handleRemoveClick = (plotId) => { setPlotToDelete(plotId); setDeleteDialogOpen(true); };
@@ -260,25 +257,66 @@ useEffect(() => {
     setAddPlantDialogOpen(false);
   };
 
-  const handleSaveNewPlant = (plantName) => {
+  const handleSaveNewPlant = async ({ name, status }) => {
     if (!plotToAddPlantTo) return;
 
-    const newPlant = {
+    let newPlant = {
       id: Date.now(),
       plotId: plotToAddPlantTo.id,
-      name: plantName,
-      // For now, we can hardcode a default icon name
-      icon: 'SpaIcon', 
+      plotName: plotToAddPlantTo.name,
+      name: name,
+      status: status,
+      icon: 'SpaIcon',
       datePlanted: new Date().toISOString(),
       isRemoved: false,
+      wateringHistory: [],
       harvests: []
     };
+
+    try {
+      console.log(`Requesting maturity info for ${name} from local AI...`);
+      const response = await fetch(AI_PLANT_INFO_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plantName: name })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const days = data.estimatedDaysToMaturity;
+        const datePlanted = new Date(newPlant.datePlanted);
+        const estimatedHarvestDate = new Date(datePlanted.setDate(datePlanted.getDate() + days));
+
+        console.log(`Received from AI: ${days} days. Estimated harvest: ${estimatedHarvestDate.toISOString()}`);
+        
+        newPlant = {
+          ...newPlant,
+          estimatedDaysToMaturity: days,
+          estimatedHarvestDate: estimatedHarvestDate.toISOString(),
+        };
+      }
+    } catch (e) {
+      console.error("Could not fetch AI-driven data:", e);
+    }
 
     const previousPlants = [...plants];
     const updatedPlants = [...plants, newPlant];
     setPlants(updatedPlants);
-    handleSave(PLANTS_API_URL, updatedPlants, previousPlants, `Added ${plantName} to ${plotToAddPlantTo.name}!`);
+    handleSave(PLANTS_API_URL, updatedPlants, previousPlants, `Added ${name} to ${plotToAddPlantTo.name}!`);
+
+    const previousPlots = [...plots];
+    const updatedPlots = plots.map(p => {
+      if (p.id === plotToAddPlantTo.id) {
+        const newPlantIds = [...(p.plantIds || []), newPlant.id];
+        return { ...p, plantIds: newPlantIds };
+      }
+      return p;
+    });
+
+    setPlots(updatedPlots);
+    handleSave(PLOTS_API_URL, updatedPlots, previousPlots, `Updated plot with new plant ID.`);
   };
+
 
  return (
     <>
@@ -291,14 +329,13 @@ useEffect(() => {
                 <Tab label="Weather" />
                 <Tab label="Watering Log" />
                 <Tab label="Harvest Log" />
+                <Tab label="Garden AI" />
             </Tabs>
         </Box>
 
         <Box sx={{ px: { xs: 2, sm: 3 } }}>
             <Header
               weather={weather}
-              debugMode={debugMode}
-              onDebugToggle={() => setDebugMode(prev => !prev)}
               activeTab={activeTab}
               onAddPlot={handleAddPlot}
             />
@@ -329,14 +366,20 @@ useEffect(() => {
 
             <TabPanel value={activeTab} index={2}>
               <Box sx={{ px: { xs: 2, sm: 3 } }}>
-                <WateringLog log={wateringLog} />
+                <WateringLog plants={plants} plots={plots} />
               </Box>
             </TabPanel>
 
             <TabPanel value={activeTab} index={3}>
               <Box sx={{ px: { xs: 2, sm: 3 } }}>
-                <HarvestLog log={harvestLog} />
+                <HarvestLog plants={plants} plots={plots} />
               </Box>
+            </TabPanel>
+
+              <TabPanel value={activeTab} index={4}>
+                <Box sx={{ px: { xs: 2, sm: 3 } }}>
+                  <GardenAI plants={plants} plots={plots} />
+                </Box>
             </TabPanel>
           </>
         )}
@@ -344,8 +387,8 @@ useEffect(() => {
       
       <ConfirmDialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} onConfirm={handleConfirmDelete} title="Delete Plot?" message="Are you sure you want to permanently delete this plot? This action cannot be undone." />
       {plotToEdit && (<EditPlotDialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} onSave={handleEditSave} plot={plotToEdit} />)}
-      <HarvestDialog open={harvestDialogOpen} onClose={() => setHarvestDialogOpen(false)} onSave={handleSaveHarvest} plantName={harvestInfo?.plantName} />
-      
+      <HarvestDialog open={harvestDialogOpen} onClose={() => setHarvestDialogOpen(false)} onSave={handleSaveHarvest} plantName={harvestInfo?.plantObject?.name} />
+              
       <PlotDetailsDialog
         plot={plotForDetails}
         open={detailsDialogOpen}
@@ -356,8 +399,6 @@ useEffect(() => {
         onEdit={handleEditClick}
         onRemove={handleRemoveClick}
         onHarvest={handleHarvest}
-        onTimeShift={handleTimeShift}
-        debugMode={debugMode}
       />
 
       <AddPlantDialog

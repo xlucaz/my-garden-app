@@ -1,15 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField
+  Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField,
+  FormControl, FormLabel, RadioGroup, FormControlLabel, Radio
 } from '@mui/material';
 
 function AddPlantDialog({ open, onClose, onSave }) {
   const [plantName, setPlantName] = useState('');
+  const [status, setStatus] = useState('Seed'); // Default status
+
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (open) {
+      setPlantName('');
+      setStatus('Seed');
+    }
+  }, [open]);
 
   const handleSave = () => {
     if (plantName.trim()) {
-      onSave(plantName.trim());
-      setPlantName(''); // Reset for next time
+      // Pass an object with both name and status
+      onSave({ name: plantName.trim(), status });
       onClose();
     }
   };
@@ -27,13 +37,27 @@ function AddPlantDialog({ open, onClose, onSave }) {
           variant="outlined"
           value={plantName}
           onChange={(e) => setPlantName(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleSave()}
           sx={{ mt: 1 }}
         />
+        
+        {/* --- NEW STATUS INPUT --- */}
+        <FormControl sx={{ mt: 3 }}>
+          <FormLabel>Initial Status</FormLabel>
+          <RadioGroup
+            row
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+          >
+            <FormControlLabel value="Seed" control={<Radio />} label="Seed" />
+            <FormControlLabel value="Sapling" control={<Radio />} label="Sapling" />
+            <FormControlLabel value="Fruiting" control={<Radio />} label="Fruiting" />
+          </RadioGroup>
+        </FormControl>
+
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button onClick={handleSave} variant="contained">Save Plant</Button>
+        <Button onClick={handleSave} variant="contained" disabled={!plantName.trim()}>Save Plant</Button>
       </DialogActions>
     </Dialog>
   );

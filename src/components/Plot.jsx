@@ -47,8 +47,11 @@ function Plot({ plot, plantsForPlot, onCardClick }) {
         <Typography variant="h5" component="div" sx={{ pr: '60px' }}>
           {plot.name}
         </Typography>
-        <WateringTimer nextWateringTime={plot.nextWateringTime} wateringInterval={plot.wateringInterval} />
-      </CardContent>
+        <WateringTimer
+          nextWateringTime={plot.nextWateringTime}
+          wateringInterval={plot.wateringInterval}
+        />
+       </CardContent>
     </Card>
   );
 }

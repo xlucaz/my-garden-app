@@ -3,7 +3,7 @@ import { Box, Typography, Paper, FormControlLabel, Switch, Button } from '@mui/m
 import AddIcon from '@mui/icons-material/Add';
 
 
-function Header({ debugMode, onDebugToggle, weather, activeTab, onAddPlot }) {
+function Header({ weather, activeTab, onAddPlot }) {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -23,7 +23,6 @@ function Header({ debugMode, onDebugToggle, weather, activeTab, onAddPlot }) {
             Add Plot
           </Button>
         )}
-        <FormControlLabel control={<Switch checked={debugMode} onChange={onDebugToggle} />} label="Debug Mode" />
         <Box sx={{ textAlign: 'right' }}>
           {weather && weather.main && weather.weather ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
