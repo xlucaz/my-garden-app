@@ -21,7 +21,7 @@ function GardenAI({ plants, plots }) {
         Personalized tips and notices for your garden, powered by AI.
       </Typography>
 
-      <GardenPal plants={plants} />
+      <GardenPal plants={plants} plots={plots} />
     </Box>
   );
 }

@@ -11,7 +11,7 @@ import FastForwardIcon from '@mui/icons-material/FastForward';
 import HistoryIcon from '@mui/icons-material/History';
 
 
-function PlotDetailsDialog({ plot, open, onClose, plants, onWater, onEdit, onRemove, debugMode, onTimeShift, onHarvest, onAddPlant }) {
+function PlotDetailsDialog({ plot, open, onClose, plants, onWater, onEdit, onRemove, debugMode, onTimeShift, onPlantClick, onAddPlant }) {
   if (!plot) return null;
 
   const plantsForPlot = plants.filter(p => p.plotId === plot.id && !p.isRemoved);
@@ -50,11 +50,7 @@ function PlotDetailsDialog({ plot, open, onClose, plants, onWater, onEdit, onRem
               <Chip
                 key={plant.id}
                 label={plant.name}
-                // UPDATED: Added the onClick handler to use the 'plant' and 'onHarvest' variables
-                onClick={() => {
-                  onClose();
-                  onHarvest(plant);
-                }}
+                onClick={() => onPlantClick(plant)}
                 color="secondary"
               />
             ))

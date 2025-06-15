@@ -1,48 +1,67 @@
-import React from 'react';
-import { Paper, Typography, Box, List, ListItem, ListItemText, ListItemAvatar, Avatar, Divider } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Paper, Typography, Box, List, ListItem, ListItemText, ListItemAvatar, Avatar, Divider, CircularProgress } from '@mui/material';
 import TipsAndUpdatesIcon from '@mui/icons-material/TipsAndUpdates';
 
-/**
- * An AI-powered assistant that provides suggestions and facts about the user's plants.
- */
-function GardenPal({ plants }) {
+const AI_API_URL = 'http://localhost:3001/api/ai/ask';
 
-  // Helper function to calculate the age of a plant in days
-  const getPlantAge = (datePlanted) => {
-    const planted = new Date(datePlanted);
-    const now = new Date();
-    const diffTime = Math.abs(now - planted);
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  };
+function GardenPal({ plants, plots }) {
 
-  const generateNotices = (plant) => {
-    const notices = [];
-    const age = getPlantAge(plant.datePlanted);
+  const [tips, setTips] = useState({});
+  const [loadingStates, setLoadingStates] = useState({});
 
-    // Generic Notice based on age
-    notices.push(`Your ${plant.name} was planted ${age} days ago.`);
-
-    // AI-Powered Suggestion for a specific plant
-    if (plant.name.toLowerCase().includes('basil')) {
-      notices.push("Once a young Thai basil plant has six to eight sets of leaves, pinch off the top set of leaves to encourage branching and fuller growth.");
-    }
-    
-    // Add more rules here for other plants or statuses!
-    // Example for fruiting plants:
-    if (plant.status === 'Fruiting') {
-      notices.push(`Since this plant is fruiting, ensure it gets consistent water and consider a fertilizer rich in potassium.`);
+  const fetchTipForPlant = async (plant) => {
+    // Prevent fetching if a tip already exists or is loading
+    if (tips[plant.id] || loadingStates[plant.id]) {
+      return;
     }
 
-    return notices;
-  };
+    setLoadingStates(prev => ({ ...prev, [plant.id]: true }));
 
+    try {
+      const question = `What is one important tip for a ${plant.name} plant that is currently in the ${plant.status} stage? Keep the answer to one sentence.`;
+      const response = await fetch(AI_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question })
+      });
+
+      if (!response.ok) {
+        throw new Error('AI service failed to respond.');
+      }
+      
+      const data = await response.json();
+      setTips(prev => ({ ...prev, [plant.id]: data.answer }));
+
+    } catch (error) {
+      console.error(`Failed to fetch tip for ${plant.name}:`, error);
+      setTips(prev => ({ ...prev, [plant.id]: 'Could not fetch a tip at this time.' }));
+    } finally {
+      setLoadingStates(prev => ({ ...prev, [plant.id]: false }));
+    }
+  };
+  
   const activePlants = plants.filter(p => !p.isRemoved);
+
+  useEffect(() => {
+    activePlants.forEach(plant => {
+      fetchTipForPlant(plant);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plants]); // Rerun when the list of plants changes
+
+  const getPlotName = (plotId) => {
+    const plot = plots.find(p => p.id === plotId);
+    return plot ? plot.name : 'your garden';
+  };
 
   return (
     <Paper elevation={3} sx={{ p: { xs: 1, sm: 2 }}}>
       <List>
         {activePlants.map((plant, index) => {
-          const notices = generateNotices(plant);
+          const isLoading = loadingStates[plant.id];
+          const tip = tips[plant.id];
+          const plotName = getPlotName(plant.plotId);
+          
           return (
             <React.Fragment key={plant.id}>
               <ListItem alignItems="flex-start">
@@ -52,14 +71,11 @@ function GardenPal({ plants }) {
                   </Avatar>
                 </ListItemAvatar>
                 <ListItemText
-                  primary={<Typography variant="h6">{plant.name} in "{plant.plotName || 'your garden'}"</Typography>}
-                  secondaryTypographyProps={{ component: 'div' }} 
+                  primary={<Typography variant="h6">{plant.name} in "{plotName}"</Typography>}
                   secondary={
-                    <Box component="ul" sx={{ pl: 2, mt: 1 }}>
-                      {notices.map((notice, i) => (
-                        <Typography component="li" variant="body2" key={i}>{notice}</Typography>
-                      ))}
-                    </Box>
+                    isLoading ? 
+                    <CircularProgress size={20} sx={{ mt: 1 }} /> : 
+                    <Typography variant="body2" sx={{ mt: 1 }}>{tip}</Typography>
                   }
                 />
               </ListItem>

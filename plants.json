@@ -3,12 +3,53 @@
     "id": 1749943391204,
     "plotId": 1749943370599,
     "name": "Daisy",
-    "status": "Sapling",
+    "status": "Sprout",
     "icon": "SpaIcon",
     "datePlanted": "2025-06-14T23:23:11.204Z",
     "isRemoved": false,
+    "wateringHistory": [
+      {
+        "timestamp": "2025-06-15T04:15:55.008Z",
+        "weather": {
+          "temp": 16.17,
+          "description": "clear sky",
+          "icon": "01n",
+          "humidity": 61
+        }
+      }
+    ],
+    "harvests": [
+      {
+        "timestamp": "2025-06-15T04:15:37.309Z",
+        "quantity": "1",
+        "action": "keep",
+        "weather": {
+          "temp": 16.17,
+          "description": "clear sky",
+          "icon": "01n",
+          "humidity": 61
+        }
+      }
+    ],
+    "notes": [
+      "testing1",
+      "testing 2",
+      "testing 3",
+      "testing 4",
+      "testing 5 testing 5 testing 5 testing 5 testing 5 testing 5 testing 5 testing 5",
+      "testing 6"
+    ]
+  },
+  {
+    "id": 1749960422661,
+    "plotId": 1749960397656,
+    "name": "Test1",
+    "status": "Seed",
+    "icon": "SpaIcon",
+    "datePlanted": "2025-06-15T04:07:02.661Z",
+    "isRemoved": false,
     "wateringHistory": [],
     "harvests": [],
-    "notes":[]
+    "notes": []
   }
 ]

@@ -4,10 +4,20 @@
     "name": "Flowers",
     "plants": [],
     "wateringInterval": 122400000,
-    "nextWateringTime": 1750065782785,
-    "soilType":"...",
+    "nextWateringTime": 1750083355007,
+    "soilType": "...",
     "plantIds": [
       1749943391204
+    ]
+  },
+  {
+    "id": 1749960397656,
+    "name": "Vegs",
+    "wateringInterval": 86400000,
+    "nextWateringTime": 1750046814122,
+    "soilType": "Organic Potting Mix",
+    "plantIds": [
+      1749960422661
     ]
   }
 ]

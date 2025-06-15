@@ -12,11 +12,13 @@ import AddIcon from '@mui/icons-material/Add';
 import PlotDetailsDialog from './components/PlotDetailsDialog';
 import AddPlantDialog from './components/AddPlantDialog';
 import GardenAI from './components/GardenAI';
+import PlantDetailsDialog from './components/PlantDetailsDialog';
+import EditPlantDialog from './components/EditPlantDialog';
 
 
 const PLOTS_API_URL = 'http://localhost:3001/api/plots';
 const PLANTS_API_URL = 'http://localhost:3001/api/plants';
-const AI_PLANT_INFO_URL = 'http://localhost:3001/api/ai/plant-info';
+const AI_API_URL = 'http://localhost:3001/api/ai/ask';
 
 const LATITUDE = 43.6532;
 const LONGITUDE = -79.3832;
@@ -52,6 +54,10 @@ function App() {
   const [plotForDetails, setPlotForDetails] = useState(null);
   const [addPlantDialogOpen, setAddPlantDialogOpen] = useState(false);
   const [plotToAddPlantTo, setPlotToAddPlantTo] = useState(null);
+  const [plantDetailsDialogOpen, setPlantDetailsDialogOpen] = useState(false);
+  const [plantForDetails, setPlantForDetails] = useState(null);
+  const [editPlantDialogOpen, setEditPlantDialogOpen] = useState(false);
+  const [plantToEdit, setPlantToEdit] = useState(null);
 
 
 useEffect(() => {
@@ -84,7 +90,6 @@ useEffect(() => {
     fetchAllData();
   }, []);
   
-  // UPDATED: Generic function to handle saving state and showing snackbars
   const handleSave = async (url, newData, previousData, successMessage) => {
     try {
       const response = await fetch(url, {
@@ -109,18 +114,15 @@ const handleWaterPlot = (plotId) => {
     const plotToWater = plots.find(p => p.id === plotId);
     if (!plotToWater) return;
 
-    // --- Part 1: Update the Plot's Schedule ---
     const previousPlots = [...plots];
     const updatedPlot = { ...plotToWater, nextWateringTime: Date.now() + plotToWater.wateringInterval };
     const updatedPlots = plots.map(p => p.id === plotId ? updatedPlot : p);
     setPlots(updatedPlots);
     handleSave(PLOTS_API_URL, updatedPlots, previousPlots, `Plot ${plotToWater.name} schedule updated!`);
 
-
-    // --- Part 2: Update the Watering History for each Plant in the Plot ---
     const previousPlants = [...plants];
     const plantsToUpdate = plants.filter(p => p.plotId === plotId && !p.isRemoved);
-    if (plantsToUpdate.length === 0) return; // No plants to log for
+    if (plantsToUpdate.length === 0) return; 
 
     const weatherSummary = weather ? {
         temp: weather.main.temp,
@@ -150,7 +152,7 @@ const handleWaterPlot = (plotId) => {
 
   const handleHarvest = (plant) => {
     setHarvestInfo({
-      plantObject: plant // Store the whole object
+      plantObject: plant 
     });
     setHarvestDialogOpen(true);
   };
@@ -163,12 +165,19 @@ const handleWaterPlot = (plotId) => {
     if (!plot) return;
 
     const previousPlants = [...plants];
+    
+    const weatherSummary = weather ? {
+        temp: weather.main.temp,
+        description: weather.weather[0].description,
+        icon: weather.weather[0].icon,
+        humidity: weather.main.humidity
+    } : null;
 
     const newHarvest = {
       timestamp: new Date().toISOString(),
       quantity: quantity,
       action: action,
-      weather: weather,
+      weather: weatherSummary,
     };
 
     const updatedPlants = plants.map(p => {
@@ -187,7 +196,7 @@ const handleWaterPlot = (plotId) => {
   };
   
 const handleConfirmDelete = () => {
-    if (!plotToDelete) return; // Safety check
+    if (!plotToDelete) return; 
     const previousPlots = [...plots];
     const updatedPlots = plots.filter(p => p.id !== plotToDelete);
     setPlots(updatedPlots);
@@ -219,7 +228,7 @@ const handleConfirmDelete = () => {
   const handleRemoveClick = (plotId) => { setPlotToDelete(plotId); setDeleteDialogOpen(true); };
   const handleAddPlot = () => {
     const interval = 86400000;
-    const newPlotTemplate = { id: Date.now(), name: '', plants: [], wateringInterval: interval, nextWateringTime: Date.now() + interval };
+    const newPlotTemplate = { id: Date.now(), name: '', wateringInterval: interval, nextWateringTime: Date.now() + interval, soilType: 'Loam', plantIds: [] };
     setPlotToEdit(newPlotTemplate);
     setEditDialogOpen(true);
   };
@@ -227,7 +236,7 @@ const handleConfirmDelete = () => {
   const handleTabChange = (event, newValue) => { setActiveTab(newValue); };
   const handleSnackbarClose = () => { setSnackbar({ ...snackbar, open: false }); };
 
-    const handleShowDetails = (plot) => {
+  const handleShowDetails = (plot) => {
     setPlotForDetails(plot);
     setDetailsDialogOpen(true);
   };
@@ -236,7 +245,7 @@ const handleConfirmDelete = () => {
     setDetailsDialogOpen(false);
   };
 
-useEffect(() => {
+  useEffect(() => {
     if (activeTab === 0) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -260,45 +269,45 @@ useEffect(() => {
   const handleSaveNewPlant = async ({ name, status }) => {
     if (!plotToAddPlantTo) return;
 
-    let newPlant = {
+    let estimatedDaysToMaturity = null;
+    let estimatedHarvestDate = null;
+    
+    try {
+        const question = `On average, how many days does it take for a ${name} plant to reach maturity from a seed? Please respond with only a single number.`;
+        const response = await fetch(AI_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question })
+        });
+        if (response.ok) {
+            const data = await response.json();
+            const days = parseInt(data.answer, 10);
+            if (!isNaN(days)) {
+                estimatedDaysToMaturity = days;
+                const datePlanted = new Date();
+                estimatedHarvestDate = new Date(datePlanted.setDate(datePlanted.getDate() + days)).toISOString();
+            }
+        }
+    } catch (e) {
+        console.error("Could not fetch AI-driven maturity data:", e);
+        setSnackbar({ open: true, message: 'Could not get AI data for maturity.', severity: 'info' });
+    }
+
+    const newPlant = {
       id: Date.now(),
       plotId: plotToAddPlantTo.id,
-      plotName: plotToAddPlantTo.name,
       name: name,
       status: status,
       icon: 'SpaIcon',
       datePlanted: new Date().toISOString(),
       isRemoved: false,
       wateringHistory: [],
-      harvests: []
+      harvests: [],
+      notes: [],
+      estimatedDaysToMaturity,
+      estimatedHarvestDate
     };
-
-    try {
-      console.log(`Requesting maturity info for ${name} from local AI...`);
-      const response = await fetch(AI_PLANT_INFO_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plantName: name })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const days = data.estimatedDaysToMaturity;
-        const datePlanted = new Date(newPlant.datePlanted);
-        const estimatedHarvestDate = new Date(datePlanted.setDate(datePlanted.getDate() + days));
-
-        console.log(`Received from AI: ${days} days. Estimated harvest: ${estimatedHarvestDate.toISOString()}`);
-        
-        newPlant = {
-          ...newPlant,
-          estimatedDaysToMaturity: days,
-          estimatedHarvestDate: estimatedHarvestDate.toISOString(),
-        };
-      }
-    } catch (e) {
-      console.error("Could not fetch AI-driven data:", e);
-    }
-
+    
     const previousPlants = [...plants];
     const updatedPlants = [...plants, newPlant];
     setPlants(updatedPlants);
@@ -317,6 +326,28 @@ useEffect(() => {
     handleSave(PLOTS_API_URL, updatedPlots, previousPlots, `Updated plot with new plant ID.`);
   };
 
+    const handleShowPlantDetails = (plant) => {
+        setDetailsDialogOpen(false); 
+        setPlantForDetails(plant);
+        setPlantDetailsDialogOpen(true); 
+    };
+
+    const handleClosePlantDetails = () => {
+        setPlantDetailsDialogOpen(false);
+    };
+
+    const handleEditPlant = (plant) => {
+        setPlantToEdit(plant);
+        setEditPlantDialogOpen(true);
+    };
+
+    const handleSavePlant = (editedPlant) => {
+        const previousPlants = [...plants];
+        const updatedPlants = plants.map(p => p.id === editedPlant.id ? editedPlant : p);
+        setPlants(updatedPlants);
+        handleSave(PLANTS_API_URL, updatedPlants, previousPlants, "Plant details updated!");
+        setEditPlantDialogOpen(false);
+    };
 
  return (
     <>
@@ -398,13 +429,29 @@ useEffect(() => {
         onWater={handleWaterPlot}
         onEdit={handleEditClick}
         onRemove={handleRemoveClick}
-        onHarvest={handleHarvest}
+        onPlantClick={handleShowPlantDetails}
       />
 
       <AddPlantDialog
         open={addPlantDialogOpen}
         onClose={handleCloseAddPlantDialog}
         onSave={handleSaveNewPlant}
+      />
+
+      <PlantDetailsDialog
+        open={plantDetailsDialogOpen}
+        onClose={handleClosePlantDetails}
+        plant={plantForDetails}
+        plotName={plots.find(p => p.id === plantForDetails?.plotId)?.name}
+        onHarvest={handleHarvest}
+        onEdit={handleEditPlant}
+      />
+
+      <EditPlantDialog
+        open={editPlantDialogOpen}
+        onClose={() => setEditPlantDialogOpen(false)}
+        onSave={handleSavePlant}
+        plant={plantToEdit}
       />
 
       <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={handleSnackbarClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>

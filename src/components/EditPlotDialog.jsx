@@ -11,28 +11,30 @@ const msToDHMS = (ms) => {
 
 function EditPlotDialog({ open, onClose, onSave, plot }) {
   const [name, setName] = useState('');
-  const [plants, setPlants] = useState(['', '', '']);
+  const [soilType, setSoilType] = useState('');
   const [interval, setInterval] = useState({ days: 0, hours: 0, minutes: 0 });
 
   useEffect(() => {
     if (plot) {
       setName(plot.name || '');
-      const plotPlants = plot.plants || [];
-      setPlants([ plotPlants[0] || '', plotPlants[1] || '', plotPlants[2] || '' ]);
+      setSoilType(plot.soilType || '');
       setInterval(msToDHMS(plot.wateringInterval));
     }
   }, [plot, open]);
 
   const handleSave = () => {
     const totalMs = (interval.days * 86400000) + (interval.hours * 3600000) + (interval.minutes * 60000);
-    onSave({ ...plot, name, plants: plants.filter(p => p), wateringInterval: totalMs });
+    onSave({ ...plot, name, soilType, wateringInterval: totalMs });
   };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>Edit Plot</DialogTitle>
+      <DialogTitle>{plot ? 'Edit Plot' : 'Add Plot'}</DialogTitle>
       <DialogContent>
         <TextField autoFocus margin="dense" label="Plot Name" type="text" fullWidth value={name} onChange={(e) => setName(e.target.value)} sx={{ mb: 2 }} />
+        
+        <TextField margin="dense" label="Soil Type (e.g., Loam, Clay)" type="text" fullWidth value={soilType} onChange={(e) => setSoilType(e.target.value)} sx={{ mb: 2 }} />
+
         <Typography variant="subtitle1" sx={{ mt: 2 }}>Watering Interval</Typography>
         <Box display="flex" gap={2}>
           <TextField label="Days" type="number" value={interval.days} onChange={(e) => setInterval({...interval, days: Number(e.target.value)})} />
